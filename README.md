@@ -1,6 +1,6 @@
 # 红果鉴 / 真果鉴
 
-Flutter 独立短剧应用。本线以桌面端为主维护线（Windows 10+ x64、Linux x64 / Ubuntu 26.04），Android 手机与 Android TV 源码保留，跟随上游作者节奏，不在本线主动推进。站源请求、解析、下载和播放均在设备上完成，不依赖旧项目、远程自建服务或第三方中转。原生核心为 Go（FFI 接入），播放器基于 media_kit / libmpv。
+Flutter 独立短剧应用。本线以桌面端为主维护线（Windows 10+ x64、Linux x64 / Ubuntu 26.04），不构建移动端：Android 手机与 Android TV 源码保留、跟随上游作者节奏，需要时自行构建。站源请求、解析、下载和播放均在设备上完成，不依赖旧项目、远程自建服务或第三方中转。原生核心为 Go（FFI 接入），播放器基于 media_kit / libmpv。
 修改加入的对安卓6的支持
 
 当前源码版本：**0.2.102+4（未验证开发快照）**。按 2026-09-21 的约定，功能优先、暂停集中测试与回归；未经设备验收的能力均标注"待验证"，不作为已通过验收的版本。
@@ -67,7 +67,7 @@ Flutter 独立短剧应用。本线以桌面端为主维护线（Windows 10+ x64
 | --- | --- |
 | Windows 10+ x64 | 2026-10-02 恢复维护：`windows/` 平台工程、`scripts/build_windows.py` 与 Actions `windows` 任务已接回，源码 `0.2.102+4`；构建需 MinGW-w64 与 Visual Studio 生成工具。本机（Windows + MinGW-w64 + VS 生成工具）已跑通 `scripts/build_windows.py` 并产出便携压缩包；Actions 上的 `windows` 任务首次运行失败、仍在排查（见「GitHub Actions」一节），真实运行待验收。便携模式：数据目录为可执行文件同级的 `userdata`（配置、用户、记录、下载与增强资源缓存均在其中），不使用 `%APPDATA%`，整个目录可直接拷贝迁移。已摘取上游 3 个跨平台播放器补丁（起播误判卡顿修复、mpv 日志降级 warn、直接进播放页），未引入上游的 Android 专属改动；并修复切到其他应用后返回不自动续播（仅对"因窗口失焦自动暂停"生效，用户手动暂停不恢复，播放完毕不续播）；并修复首页与分类封面不显示（红果 App 接口下发的带签名 HEIC 模板地址改用公共图床 JPEG 地址，桌面端引擎不含 HEIF 解码器） |
 | Linux x64（Ubuntu 26.04） | 新增：`linux/` 平台工程、`scripts/build_linux.py`、Actions `ubuntu-26.04` 任务与 deb 安装包，源码 `0.2.102+4`；构建需 clang、CMake、Ninja、GTK3 与 libmpv / epoxy 开发包，真实运行待验收。deb 安装到 `/opt/hongguojian`（全站源版为 `/opt/zhenguojian`），桌面项与图标注册到系统目录；数据目录沿用 XDG 规范（`~/.local/share`），不使用便携模式 |
-| Android 6.0+ 手机 | 源码 `0.2.102+4`；构建脚本与 Actions 产物可用（CI 仅编 arm64-v8a），真实安装与运行待验收；浏览、搜索、在线播放支持安卓 6（minSdk 23，Flutter 3.32.8）。按 2026-10-02 要求彻底移除 FFmpegKit 及其依赖功能（分集合并、Emby 导出、封面解码），消除启动时原生库加载失败导致的安卓 6 黑屏；离线播放不受影响（走 Go 核心按分集播放） |
+| Android 6.0+ 手机 | 本线不构建移动端：Actions 不再产出 APK。源码与 `scripts/build_android.py` 保留，需要时自行构建（arm64-v8a，minSdk 23，Flutter 3.32.8，支持安卓 6）。按 2026-10-02 要求已彻底移除 FFmpegKit 及其依赖功能（分集合并、Emby 导出、封面解码），消除启动时原生库加载失败导致的安卓 6 黑屏；离线播放不受影响（走 Go 核心按分集播放） |
 | macOS 12+ | 按 2026-10-02 要求停止编译；平台源码保留，不提供安装包与 Actions 产物 |
 | Android TV | 与手机共用 Android 源码；遥控与电视布局待实机验收 |
 
@@ -79,17 +79,16 @@ Flutter 独立短剧应用。本线以桌面端为主维护线（Windows 10+ x64
 
 | 红果版 Artifact | 全站源版 Artifact | 内容 |
 | --- | --- | --- |
-| `hongguojian-android` | `zhenguojian-android` | arm64-v8a APK 和 SHA256 |
 | `hongguojian-windows` | `zhenguojian-windows` | Windows x64 便携压缩包和 SHA256 |
 | `hongguojian-linux` | `zhenguojian-linux` | Linux amd64 deb 安装包和 SHA256 |
 
-检查任务（checks）不阻断出包；暂停验证期间的测试结果仅供参考。push 到 `main` 构建成功后自动创建 GitHub Release（tag 为 `v<版本>-<构建号>`），可直接在 Releases 页下载 APK、Windows 便携包与 deb。
+检查任务（checks）不阻断出包；暂停验证期间的测试结果仅供参考。push 到 `main` 构建成功后自动创建 GitHub Release（tag 为 `v<版本>-<构建号>`），可直接在 Releases 页下载 Windows 便携包与 deb。本线不构建移动端，Actions 不产出 APK。
 
 Linux 任务固定运行在 `ubuntu-26.04` 上：`ubuntu-latest` 目前仍指向 24.04，会在 2026 年 10 月 19 日至 11 月 19 日之间切到 26.04，若不显式钉住基底，出包环境会随迁移漂移。deb 里的原生库按 26.04 的 glibc 与 GTK3 编译，因此只保证在 Ubuntu 26.04 上运行。
 
 `windows` 任务首次运行（2026-10-03）两个版本都停在 `scripts/build_windows.py`，退出码 1；同一脚本在本机跑通并产出便携压缩包，判断为 CI 环境差异。GitHub 的 job 日志需要仓库管理员权限才能下载，匿名只能读 check-run 注解，因此构建脚本改为把失败步骤的输出写进 `::error::` 注解（`scripts/build_step.py`），并把工具链版本写进 `::notice::` 注解，修复进展见下表 P1-R13。
 
-Android 正式发布签名在仓库 Secrets 配置：
+自行构建 Android 正式签名包时，在仓库 Secrets 配置：
 
 | Secret | 内容 |
 | --- | --- |
