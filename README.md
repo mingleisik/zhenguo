@@ -131,7 +131,7 @@ Linux 桌面端调试改为 `python3 scripts/build_native.py --platform linux`�
 
 调试全站源版时给 `build_native.py` 加 `--all-sources`，并用 `flutter run --dart-define=ALL_SOURCES=true`；脚本会同步设置 Dart 常量和 Go 编译参数，应用启动时检查二者是否一致。
 
-产物在 `dist/android`、`dist/windows` 和 `dist/linux`，红果版以 `hongguojian-` / `hongguojian_` 开头，全站源版以 `zhenguojian-` / `zhenguojian_` 开头，均附 SHA256SUMS。Windows 产物为便携压缩包，解压后运行 `duanju_app.exe`；Linux 产物为 deb，安装命令 `sudo apt install ./hongguojian_<版本>_amd64.deb`，装完在应用菜单里以"红果鉴"出现，也可直接运行 `/opt/hongguojian/duanju_app`。
+产物在 `dist/android`、`dist/windows` 和 `dist/linux`，红果版以 `hongguojian-` / `hongguojian_` 开头，全站源版以 `zhenguojian-` / `zhenguojian_` 开头，校验文件按版与平台分开命名（`SHA256SUMS-<版>-<平台>.txt`，例如 `SHA256SUMS-hongguojian-windows.txt`），因为四个 job 都往同一个 Release 传产物，同名文件会互相覆盖。Windows 产物为便携压缩包，解压后运行 `duanju_app.exe`；Linux 产物为 deb，安装命令 `sudo apt install ./hongguojian_<版本>_amd64.deb`，装完在应用菜单里以"红果鉴"出现，也可直接运行 `/opt/hongguojian/duanju_app`。
 
 ## 功能 TODO
 

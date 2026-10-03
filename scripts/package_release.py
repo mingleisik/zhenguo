@@ -79,4 +79,7 @@ for artifact in sorted(set(output.glob(f'*-{version}-*')) | set(output.glob(f'*_
             digest.update(chunk)
     checksums.append(f'{digest.hexdigest()}  {artifact.name}')
     print(artifact)
-(output / 'SHA256SUMS.txt').write_text('\n'.join(checksums) + '\n', encoding='ascii')
+# 两个 edition 和两个平台各跑一个 job，却上传到同一个 Release，同名的 SHA256SUMS.txt
+# 会互相 --clobber 覆盖，最后只剩一个包的校验值，所以按版与平台区分文件名。
+(output / f'SHA256SUMS-{variant.slug}-{options.platform}.txt').write_text(
+    '\n'.join(checksums) + '\n', encoding='ascii')
