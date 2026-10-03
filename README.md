@@ -3,7 +3,23 @@
 Flutter 独立短剧应用。本线以桌面端为主维护线（Windows 10+ x64、Linux x64 / Ubuntu 26.04），不构建移动端：Android 手机与 Android TV 源码保留、跟随上游作者节奏，需要时自行构建。站源请求、解析、下载和播放均在设备上完成，不依赖旧项目、远程自建服务或第三方中转。原生核心为 Go（FFI 接入），播放器基于 media_kit / libmpv。
 修改加入的对安卓6的支持
 
-当前源码版本：**0.2.102+4（未验证开发快照）**。按 2026-09-21 的约定，功能优先、暂停集中测试与回归；未经设备验收的能力均标注"待验证"，不作为已通过验收的版本。
+## 上游与来源
+
+**本项目不是原创，只是在原作者仓库的基础上做的桌面端开发线。**
+
+| 角色 | 仓库 | 说明 |
+| --- | --- | --- |
+| 上游（原作者） | [jipinwa/hongguo](https://github.com/jipinwa/hongguo) | 主线，站源实现、业务逻辑与主要功能都来自这里，版权归原作者 |
+| 本线（桌面端） | [mingleisik/zhenguo](https://github.com/mingleisik/zhenguo) | 在上游基础上开发桌面端：Windows / Linux 平台工程、构建打包与 CI 出包 |
+
+本线的改动集中在桌面端，站源实现与业务逻辑沿用上游：
+
+- 新增 `windows/` 与 `linux/` 平台工程、`scripts/build_windows.py`、`scripts/build_linux.py`、`scripts/package_release.py`、`scripts/linux_package.py` 与对应 CI 任务，产出 Windows x64 便携包和 Linux amd64 deb。
+- 桌面端专属适配：FFI 接入 Go 核心、窗口与全屏控制、便携数据目录（Windows 用可执行文件同级的 `userdata`）、桌面端播放器补丁。
+- 移动端（Android 手机 / Android TV）源码原样保留、跟随上游节奏，本线不构建、不主动推进；iOS 端不维护；macOS 端停止编译但保留平台源码。
+- 与上游冲突时以桌面端可用为准；需要回上游的功能改动优先按上游的写法实现。
+
+当前源码版本：**0.2.103+5（未验证开发快照）**。按 2026-09-21 的约定，功能优先、暂停集中测试与回归；未经设备验收的能力均标注"待验证"，不作为已通过验收的版本。
 
 ## 版本与编译选项
 
@@ -65,8 +81,8 @@ Flutter 独立短剧应用。本线以桌面端为主维护线（Windows 10+ x64
 
 | 平台 | 状态 |
 | --- | --- |
-| Windows 10+ x64 | 2026-10-02 恢复维护：`windows/` 平台工程、`scripts/build_windows.py` 与 Actions `windows` 任务已接回，源码 `0.2.102+4`；构建需 MinGW-w64 与 Visual Studio 生成工具。本机（Windows + MinGW-w64 + VS 生成工具）已跑通 `scripts/build_windows.py` 并产出便携压缩包；Actions 上的 `windows` 任务首次运行失败、仍在排查（见「GitHub Actions」一节），真实运行待验收。便携模式：数据目录为可执行文件同级的 `userdata`（配置、用户、记录、下载与增强资源缓存均在其中），不使用 `%APPDATA%`，整个目录可直接拷贝迁移。已摘取上游 3 个跨平台播放器补丁（起播误判卡顿修复、mpv 日志降级 warn、直接进播放页），未引入上游的 Android 专属改动；并修复切到其他应用后返回不自动续播（仅对"因窗口失焦自动暂停"生效，用户手动暂停不恢复，播放完毕不续播）；并修复首页与分类封面不显示（红果 App 接口下发的带签名 HEIC 模板地址改用公共图床 JPEG 地址，桌面端引擎不含 HEIF 解码器） |
-| Linux x64（Ubuntu 26.04） | 新增：`linux/` 平台工程、`scripts/build_linux.py`、Actions `ubuntu-26.04` 任务与 deb 安装包，源码 `0.2.102+4`；构建需 clang、CMake、Ninja、GTK3 与 libmpv / epoxy 开发包，真实运行待验收。deb 安装到 `/opt/hongguojian`（全站源版为 `/opt/zhenguojian`），桌面项与图标注册到系统目录；数据目录沿用 XDG 规范（`~/.local/share`），不使用便携模式 |
+| Windows 10+ x64 | 2026-10-02 恢复维护：`windows/` 平台工程、`scripts/build_windows.py` 与 Actions `windows` 任务已接回，源码 `0.2.103+5`；构建需 MinGW-w64 与 Visual Studio 生成工具。本机（Windows + MinGW-w64 + VS 生成工具）与 Actions `windows-2022` 任务都已跑通 `scripts/build_windows.py` 并产出便携压缩包，真实运行待验收。便携模式：数据目录为可执行文件同级的 `userdata`（配置、用户、记录、下载与增强资源缓存均在其中），不使用 `%APPDATA%`，整个目录可直接拷贝迁移。已摘取上游 3 个跨平台播放器补丁（起播误判卡顿修复、mpv 日志降级 warn、直接进播放页），未引入上游的 Android 专属改动；并修复切到其他应用后返回不自动续播（仅对"因窗口失焦自动暂停"生效，用户手动暂停不恢复，播放完毕不续播）；并修复首页与分类封面不显示（红果 App 接口下发的带签名 HEIC 模板地址改用公共图床 JPEG 地址，桌面端引擎不含 HEIF 解码器） |
+| Linux x64（Ubuntu 26.04） | 新增：`linux/` 平台工程、`scripts/build_linux.py`、Actions `ubuntu-26.04` 任务与 deb 安装包，源码 `0.2.103+5`；构建需 clang、CMake、Ninja、GTK3 与 libmpv / epoxy 开发包，真实运行待验收。deb 安装到 `/opt/hongguojian`（全站源版为 `/opt/zhenguojian`），桌面项与图标注册到系统目录；数据目录沿用 XDG 规范（`~/.local/share`），不使用便携模式 |
 | Android 6.0+ 手机 | 本线不构建移动端：Actions 不再产出 APK。源码与 `scripts/build_android.py` 保留，需要时自行构建（arm64-v8a，minSdk 23，Flutter 3.32.8，支持安卓 6）。按 2026-10-02 要求已彻底移除 FFmpegKit 及其依赖功能（分集合并、Emby 导出、封面解码），消除启动时原生库加载失败导致的安卓 6 黑屏；离线播放不受影响（走 Go 核心按分集播放） |
 | macOS 12+ | 按 2026-10-02 要求停止编译；平台源码保留，不提供安装包与 Actions 产物 |
 | Android TV | 与手机共用 Android 源码；遥控与电视布局待实机验收 |
@@ -86,7 +102,7 @@ Flutter 独立短剧应用。本线以桌面端为主维护线（Windows 10+ x64
 
 Linux 任务固定运行在 `ubuntu-26.04` 上：`ubuntu-latest` 目前仍指向 24.04，会在 2026 年 10 月 19 日至 11 月 19 日之间切到 26.04，若不显式钉住基底，出包环境会随迁移漂移。deb 里的原生库按 26.04 的 glibc 与 GTK3 编译，因此只保证在 Ubuntu 26.04 上运行。
 
-`windows` 任务固定在 `windows-2022` 上：Flutter 3.32.8 只把 Visual Studio 主版本 17（VS 2022）映射到 CMake 生成器 `Visual Studio 17 2022`，其它版本一律回退成 `Visual Studio 16 2019`；`windows-latest` 现在是 Windows Server 2025 + VS 2026（主版本 18），生成器找不到 VS 2019，构建以 `Unable to generate build files` 结束。`windows-2022` 仍在正常发版、自带 VS 2022，所以显式钉住基底，等 Flutter 支持 VS 2026 再放开。GitHub 的 job 日志需要仓库管理员权限才能下载，匿名只能读 check-run 注解，因此构建脚本把失败步骤的输出写进 `::error::` 注解、把工具链与 Visual Studio 版本写进 `::notice::` 注解（`scripts/build_step.py`），首次运行的失败原因就是靠注解定位的。脚本还会在动手构建前用 `vswhere` 核对安装清单：一旦 Flutter 选中的生成器在本机没有对应的 Visual Studio，就直接写 `::error::` 注解并退出，不再等 CMake 报错。
+`windows` 任务固定在 `windows-2022` 上：Flutter 3.32.8 只把 Visual Studio 主版本 17（VS 2022）映射到 CMake 生成器 `Visual Studio 17 2022`，其它版本一律回退成 `Visual Studio 16 2019`；`windows-latest` 现在是 Windows Server 2025 + VS 2026（主版本 18），生成器找不到 VS 2019，构建以 `Unable to generate build files` 结束。`windows-2022` 仍在正常发版、自带 VS 2022，所以显式钉住基底，等 Flutter 支持 VS 2026 再放开。钉住后 2026-10-03 的 run `37091109757` 三个任务全部通过，两个版本都产出便携压缩包并上传 artifact。GitHub 的 job 日志需要仓库管理员权限才能下载，匿名只能读 check-run 注解，因此构建脚本把失败步骤的输出写进 `::error::` 注解、把工具链与 Visual Studio 版本写进 `::notice::` 注解（`scripts/build_step.py`），首次运行的失败原因就是靠注解定位的。脚本还会在动手构建前用 `vswhere` 核对安装清单：一旦 Flutter 选中的生成器在本机没有对应的 Visual Studio，就直接写 `::error::` 注解并退出，不再等 CMake 报错。
 
 自行构建 Android 正式签名包时，在仓库 Secrets 配置：
 
@@ -151,7 +167,7 @@ Linux 桌面端调试改为 `python3 scripts/build_native.py --platform linux`�
 | P1-R10 | 两版 | 用户设置与记录检查保存结果，失败回滚快照，无法确认时锁定 | 写入失败、恢复中断、用户隔离、重启一致性 |
 | P1-R11 | 两版 | 红果封面换源：App 接口下发的带签名 HEIC 模板地址改用同一张图的公共图床无签名 JPEG 地址 | 首页 / 分类 / 榜单 / 详情封面全部可解码；旧 HEIC 缓存不再命中，换源失败不影响其他站源 |
 | P1-R12 | 两版 | Linux 桌面端接入：`linux/` 平台工程、FFI 加载 `lib/libduanju_core.so`、deb 打包与 `ubuntu-26.04` CI 任务 | 在 Ubuntu 26.04 上安装 deb、菜单启动、窗口标题、全屏切换、封面与在线播放全部可用 |
-| P1-R13 | 两版 | 修复 Actions `windows` 任务：`windows-latest` 已换成 VS 2026，Flutter 3.32.8 回退到 `Visual Studio 16 2019` 生成器导致 `Unable to generate build files`；改为钉 `windows-2022`，并把失败输出与工具链、Visual Studio 版本写入 check-run 注解 | CI 上 `windows` 两个版本都产出便携压缩包并完成 upload-artifact |
+| P1-R13 | 两版 | 修复 Actions `windows` 任务：`windows-latest` 已换成 VS 2026，Flutter 3.32.8 回退到 `Visual Studio 16 2019` 生成器导致 `Unable to generate build files`；改为钉 `windows-2022`，并把失败输出与工具链、Visual Studio 版本写入 check-run 注解 | CI 上 `windows` 两个版本都产出便携压缩包并完成 upload-artifact（2026-10-03 run `37091109757` 已通过） |
 
 ### 功能完善
 
