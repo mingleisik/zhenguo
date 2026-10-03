@@ -54,7 +54,7 @@ REQUIRED_FILES = {
     'linux/runner/resources/app_icon.png',
     'macos/Runner.xcodeproj/project.pbxproj', 'macos/Runner/Configs/AppInfo.xcconfig',
     '.github/workflows/build.yml', 'scripts/build_native.py', 'scripts/build_windows.py',
-    'scripts/build_linux.py', 'scripts/linux_package.py',
+    'scripts/build_linux.py', 'scripts/build_step.py', 'scripts/linux_package.py',
 }
 
 

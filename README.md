@@ -65,7 +65,7 @@ Flutter 独立短剧应用。本线以桌面端为主维护线（Windows 10+ x64
 
 | 平台 | 状态 |
 | --- | --- |
-| Windows 10+ x64 | 2026-10-02 恢复维护：`windows/` 平台工程、构建脚本与 Actions 产物已接回，源码 `0.2.102+4`；构建需 MinGW-w64 与 Visual Studio 生成工具，真实运行待验收。便携模式：数据目录为可执行文件同级的 `userdata`（配置、用户、记录、下载与增强资源缓存均在其中），不使用 `%APPDATA%`，整个目录可直接拷贝迁移。已摘取上游 3 个跨平台播放器补丁（起播误判卡顿修复、mpv 日志降级 warn、直接进播放页），未引入上游的 Android 专属改动；并修复切到其他应用后返回不自动续播（仅对"因窗口失焦自动暂停"生效，用户手动暂停不恢复，播放完毕不续播）；并修复首页与分类封面不显示（红果 App 接口下发的带签名 HEIC 模板地址改用公共图床 JPEG 地址，桌面端引擎不含 HEIF 解码器） |
+| Windows 10+ x64 | 2026-10-02 恢复维护：`windows/` 平台工程、`scripts/build_windows.py` 与 Actions `windows` 任务已接回，源码 `0.2.102+4`；构建需 MinGW-w64 与 Visual Studio 生成工具。本机（Windows + MinGW-w64 + VS 生成工具）已跑通 `scripts/build_windows.py` 并产出便携压缩包；Actions 上的 `windows` 任务首次运行失败、仍在排查（见「GitHub Actions」一节），真实运行待验收。便携模式：数据目录为可执行文件同级的 `userdata`（配置、用户、记录、下载与增强资源缓存均在其中），不使用 `%APPDATA%`，整个目录可直接拷贝迁移。已摘取上游 3 个跨平台播放器补丁（起播误判卡顿修复、mpv 日志降级 warn、直接进播放页），未引入上游的 Android 专属改动；并修复切到其他应用后返回不自动续播（仅对"因窗口失焦自动暂停"生效，用户手动暂停不恢复，播放完毕不续播）；并修复首页与分类封面不显示（红果 App 接口下发的带签名 HEIC 模板地址改用公共图床 JPEG 地址，桌面端引擎不含 HEIF 解码器） |
 | Linux x64（Ubuntu 26.04） | 新增：`linux/` 平台工程、`scripts/build_linux.py`、Actions `ubuntu-26.04` 任务与 deb 安装包，源码 `0.2.102+4`；构建需 clang、CMake、Ninja、GTK3 与 libmpv / epoxy 开发包，真实运行待验收。deb 安装到 `/opt/hongguojian`（全站源版为 `/opt/zhenguojian`），桌面项与图标注册到系统目录；数据目录沿用 XDG 规范（`~/.local/share`），不使用便携模式 |
 | Android 6.0+ 手机 | 源码 `0.2.102+4`；构建脚本与 Actions 产物可用（CI 仅编 arm64-v8a），真实安装与运行待验收；浏览、搜索、在线播放支持安卓 6（minSdk 23，Flutter 3.32.8）。按 2026-10-02 要求彻底移除 FFmpegKit 及其依赖功能（分集合并、Emby 导出、封面解码），消除启动时原生库加载失败导致的安卓 6 黑屏；离线播放不受影响（走 Go 核心按分集播放） |
 | macOS 12+ | 按 2026-10-02 要求停止编译；平台源码保留，不提供安装包与 Actions 产物 |
@@ -86,6 +86,8 @@ Flutter 独立短剧应用。本线以桌面端为主维护线（Windows 10+ x64
 检查任务（checks）不阻断出包；暂停验证期间的测试结果仅供参考。push 到 `main` 构建成功后自动创建 GitHub Release（tag 为 `v<版本>-<构建号>`），可直接在 Releases 页下载 APK、Windows 便携包与 deb。
 
 Linux 任务固定运行在 `ubuntu-26.04` 上：`ubuntu-latest` 目前仍指向 24.04，会在 2026 年 10 月 19 日至 11 月 19 日之间切到 26.04，若不显式钉住基底，出包环境会随迁移漂移。deb 里的原生库按 26.04 的 glibc 与 GTK3 编译，因此只保证在 Ubuntu 26.04 上运行。
+
+`windows` 任务首次运行（2026-10-03）两个版本都停在 `scripts/build_windows.py`，退出码 1；同一脚本在本机跑通并产出便携压缩包，判断为 CI 环境差异。GitHub 的 job 日志需要仓库管理员权限才能下载，匿名只能读 check-run 注解，因此构建脚本改为把失败步骤的输出写进 `::error::` 注解（`scripts/build_step.py`），并把工具链版本写进 `::notice::` 注解，修复进展见下表 P1-R13。
 
 Android 正式发布签名在仓库 Secrets 配置：
 
@@ -150,6 +152,7 @@ Linux 桌面端调试改为 `python3 scripts/build_native.py --platform linux`�
 | P1-R10 | 两版 | 用户设置与记录检查保存结果，失败回滚快照，无法确认时锁定 | 写入失败、恢复中断、用户隔离、重启一致性 |
 | P1-R11 | 两版 | 红果封面换源：App 接口下发的带签名 HEIC 模板地址改用同一张图的公共图床无签名 JPEG 地址 | 首页 / 分类 / 榜单 / 详情封面全部可解码；旧 HEIC 缓存不再命中，换源失败不影响其他站源 |
 | P1-R12 | 两版 | Linux 桌面端接入：`linux/` 平台工程、FFI 加载 `lib/libduanju_core.so`、deb 打包与 `ubuntu-26.04` CI 任务 | 在 Ubuntu 26.04 上安装 deb、菜单启动、窗口标题、全屏切换、封面与在线播放全部可用 |
+| P1-R13 | 两版 | 修复 Actions `windows` 任务：首次运行两个版本都在 `scripts/build_windows.py` 退出码 1，本机同脚本跑通；构建脚本已把失败输出与工具链版本写入 check-run 注解 | CI 上 `windows` 两个版本都产出便携压缩包并完成 upload-artifact |
 
 ### 功能完善
 

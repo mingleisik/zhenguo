@@ -2,10 +2,10 @@ import argparse
 import os
 import platform
 import shutil
-import subprocess
 from pathlib import Path
 
 from app_build import BuildVariant, add_variant_argument
+from build_step import output, run
 
 root = Path(__file__).resolve().parents[1]
 parser = argparse.ArgumentParser()
@@ -26,8 +26,8 @@ bootstrap_env = environment.copy()
 bootstrap_env['GOSUMDB'] = os.environ.get('GOSUMDB', 'sum.golang.org')
 if bootstrap_env['GOSUMDB'] == 'off':
     bootstrap_env['GOSUMDB'] = 'sum.golang.org'
-toolchain_root = subprocess.check_output([go, 'env', 'GOROOT'], cwd=root / 'native',
-    env=bootstrap_env, text=True).strip()
+toolchain_root = output([go, 'env', 'GOROOT'], cwd=root / 'native', env=bootstrap_env,
+                        label='go env GOROOT').strip()
 go = str(Path(toolchain_root) / 'bin' / ('go.exe' if platform.system() == 'Windows' else 'go'))
 
 def build(goos, architecture, compiler, output, extra=None):
@@ -36,10 +36,9 @@ def build(goos, architecture, compiler, output, extra=None):
     build_env.update(GOOS=goos, GOARCH=architecture, CC=str(compiler))
     if extra:
         build_env.update(extra)
-    print('Building ' + str(output.relative_to(root)), flush=True)
-    subprocess.run([go, 'build', '-trimpath', '-buildmode=c-shared',
-                    '-ldflags=' + variant.linker_flags, '-o', str(output), './bridge'],
-                   cwd=root / 'native', env=build_env, check=True)
+    run([go, 'build', '-trimpath', '-buildmode=c-shared',
+         '-ldflags=' + variant.linker_flags, '-o', str(output), './bridge'],
+        cwd=root / 'native', env=build_env, label='Building ' + str(output.relative_to(root)))
 
 if options.platform == 'android':
     sdk = os.environ.get('ANDROID_HOME') or os.environ.get('ANDROID_SDK_ROOT')

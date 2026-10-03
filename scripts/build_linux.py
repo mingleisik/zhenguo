@@ -2,12 +2,12 @@ import argparse
 import os
 import platform
 import shutil
-import subprocess
 import sys
 from pathlib import Path
 
 from build_mirrors import china_mirror_environment, mirrored_pub_lockfile
 from app_build import BuildVariant, add_variant_argument
+from build_step import probe, run
 
 root = Path(__file__).resolve().parents[1]
 parser = argparse.ArgumentParser(description='构建红果鉴 / 真果鉴 Linux 核心和 deb 安装包')
@@ -28,14 +28,19 @@ with china_mirror_environment(environment, options.cn_mirrors, gradle=False) as 
         mirrored_pub_lockfile(root, env):
     if options.cn_mirrors:
         print('本次构建启用国内依赖镜像。', flush=True)
-    subprocess.run([sys.executable, str(root / 'scripts' / 'build_native.py'),
-                    '--platform', 'linux', *variant.arguments],
-                   cwd=root, env=env, check=True)
-    subprocess.run([flutter, 'config', '--enable-linux-desktop'], cwd=root, env=env, check=True)
-    subprocess.run([flutter, 'pub', 'get'], cwd=root, env=env, check=True)
-    subprocess.run([flutter, 'build', 'linux', '--release', '--no-pub',
-                    *variant.flutter_arguments],
-                   cwd=root, env=env, check=True)
-    subprocess.run([sys.executable, str(root / 'scripts' / 'package_release.py'),
-                    '--platform', 'linux', *variant.arguments],
-                   cwd=root, env=env, check=True)
+    probe([
+        ('python', [sys.executable, '--version']),
+        ('go', ['go', 'version']),
+        ('gcc', ['gcc', '--version']),
+        ('cmake', ['cmake', '--version']),
+        ('ninja', ['ninja', '--version']),
+        ('pkg-config mpv', ['pkg-config', '--modversion', 'mpv']),
+    ])
+    run([sys.executable, str(root / 'scripts' / 'build_native.py'),
+         '--platform', 'linux', *variant.arguments], cwd=root, env=env)
+    run([flutter, 'config', '--enable-linux-desktop'], cwd=root, env=env)
+    run([flutter, 'pub', 'get'], cwd=root, env=env)
+    run([flutter, 'build', 'linux', '--release', '--no-pub',
+         *variant.flutter_arguments], cwd=root, env=env)
+    run([sys.executable, str(root / 'scripts' / 'package_release.py'),
+         '--platform', 'linux', *variant.arguments], cwd=root, env=env)

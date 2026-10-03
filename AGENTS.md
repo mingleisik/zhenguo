@@ -19,6 +19,7 @@
 - Linux 打包只用系统 `dpkg-deb` / `dpkg-shlibdeps`；`libmpv` 由 `media_kit_video` 在构建期链接，`Depends` 里必须保留 libmpv，缺失时由 `scripts/linux_package.py` 手工补上。
 - `media_kit_libs_linux` 会在 CMake 配置阶段从 github.com 下载并编译 mimalloc，构建机必须能直连 github.com；国内网络需要代理。
 - 本机没有 Linux 工具链，也不允许调用 WSL，Linux 产物只能由 GitHub Actions 的 `ubuntu-26.04` 任务产出；本地只能验证 Go 交叉编译、Dart 静态检查与打包脚本单测。
+- CI 的 job 日志需要仓库管理员权限才能下载，匿名只能读 check-run 注解。构建脚本统一用 `scripts/build_step.py` 执行子进程：失败时把关键输出写进 `::error::` 注解，并把工具链版本写进 `::notice::` 注解，排查不要依赖 job 日志。
 
 ## 实施与验证
 
