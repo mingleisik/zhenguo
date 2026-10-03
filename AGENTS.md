@@ -6,7 +6,7 @@
 
 ## 优先级与交付
 
-1. Windows 10+ x64 桌面端为第一优先级：`windows/` 平台工程、`scripts/build_windows.py`、CI `windows` 任务与 `dist/windows` 便携包。构建需 Windows、MinGW-w64（`x86_64-w64-mingw32-gcc`）和 Visual Studio 生成工具。
+1. Windows 10+ x64 桌面端为第一优先级：`windows/` 平台工程、`scripts/build_windows.py`、CI `windows` 任务与 `dist/windows` 便携包。构建需 Windows、MinGW-w64（`x86_64-w64-mingw32-gcc`）和 Visual Studio 生成工具。CI 必须显式固定 `windows-2022`，不要用 `windows-latest`（它现在是 Windows Server 2025 + VS 2026，主版本 18；Flutter 3.32.8 只把主版本 17 映射到 CMake 生成器 `Visual Studio 17 2022`，其它一律回退 `Visual Studio 16 2019`，生成器找不到 VS 2019 会直接以 `Unable to generate build files` 结束）。
 2. Linux x64（Ubuntu 26.04）桌面端第二优先级：`linux/` 平台工程、`scripts/build_linux.py`、CI `linux` 任务与 `dist/linux` deb 安装包。CI 必须显式固定 `ubuntu-26.04`，不要用 `ubuntu-latest`（它目前仍是 24.04，会在 2026 年 10 月 19 日至 11 月 19 日之间切到 26.04）。构建需 clang、CMake、Ninja、`libgtk-3-dev`、`liblzma-dev`、`libmpv-dev`、`libepoxy-dev`、`build-essential` 和 `dpkg-dev`；deb 里的原生库按 26.04 的 glibc 与 GTK3 编译，只保证在 26.04 上运行。
 3. 本线不构建移动端：Actions 不再产出 APK。Android 手机与 Android TV 源码保留、跟随上游节奏，需要时用 `scripts/build_android.py` 自行构建（含安卓 6 兼容：minSdk 23；FFmpegKit 及合并、导出、封面解码功能已按 2026-10-02 要求彻底移除，离线播放走 Go 核心不受影响）。iOS 端仍不维护；macOS 端停止编译，平台源码保留但不参与 CI 构建与发布产物。
 4. 首版优先完成可用的在线播放闭环：浏览、搜索、剧集详情、选集、播放、错误重试。

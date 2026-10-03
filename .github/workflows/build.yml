@@ -53,8 +53,13 @@ jobs:
         working-directory: native
         continue-on-error: true
 
+  # Flutter 3.32.8 的 visual_studio.dart 只把 Visual Studio 主版本 17（VS 2022）映射到
+  # CMake 生成器 "Visual Studio 17 2022"，其它版本一律回退成 "Visual Studio 16 2019"，
+  # 而 windows-latest 现在是 Windows Server 2025 + VS 2026（主版本 18），生成器找不到
+  # VS 2019，构建会以 "Unable to generate build files" 结束。windows-2022 仍在正常发版，
+  # 自带 VS 2022，所以显式钉住基底，等 Flutter 支持 VS 2026 再放开。
   windows:
-    runs-on: windows-latest
+    runs-on: windows-2022
     timeout-minutes: 60
     strategy:
       fail-fast: false

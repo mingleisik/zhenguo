@@ -7,7 +7,7 @@ from pathlib import Path
 
 from build_mirrors import china_mirror_environment, mirrored_pub_lockfile
 from app_build import BuildVariant, add_variant_argument
-from build_step import probe, run
+from build_step import annotate, probe, run, visual_studio_report
 
 root = Path(__file__).resolve().parents[1]
 parser = argparse.ArgumentParser(description='构建红果鉴 / 真果鉴 Windows 核心和应用')
@@ -27,13 +27,18 @@ with china_mirror_environment(environment, options.cn_mirrors, gradle=False) as 
         mirrored_pub_lockfile(root, env):
     if options.cn_mirrors:
         print('本次构建启用国内依赖镜像。', flush=True)
+    visual_studio = visual_studio_report()
+    if visual_studio.problem:
+        annotate('error', 'visual-studio', visual_studio.problem + '\n' +
+                 '\n'.join(visual_studio.notes()))
+        raise SystemExit(visual_studio.problem)
     probe([
         ('python', [sys.executable, '--version']),
         ('go', ['go', 'version']),
         ('x86_64-w64-mingw32-gcc', ['x86_64-w64-mingw32-gcc', '--version']),
         ('gcc', ['gcc', '--version']),
         ('cl', ['cl']),
-    ])
+    ], notes=visual_studio.notes())
     run([sys.executable, str(root / 'scripts' / 'build_native.py'),
          '--platform', 'windows', *variant.arguments], cwd=root, env=env)
     run([flutter, 'config', '--enable-windows-desktop'], cwd=root, env=env)

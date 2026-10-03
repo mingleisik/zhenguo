@@ -1,8 +1,10 @@
 import contextlib
 import io
+import json
 import os
 import subprocess
 import sys
+import tempfile
 import unittest
 from pathlib import Path
 from unittest import mock
@@ -98,6 +100,85 @@ class ProbeTests(unittest.TestCase):
         with contextlib.redirect_stdout(buffer):
             build_step.probe([('坏条目', [])])
         self.assertIn('probe 失败', buffer.getvalue())
+
+    def test_includes_extra_notes(self):
+        buffer = io.StringIO()
+        with contextlib.redirect_stdout(buffer):
+            build_step.probe([], notes=['Visual Studio：17.14.37710.0'])
+        self.assertIn('17.14.37710.0', buffer.getvalue())
+
+    def test_capture_returns_code_and_output(self):
+        code, text = build_step.capture([sys.executable, '-c',
+                                         'import sys; sys.stderr.write("nope\\n"); sys.exit(6)'])
+        self.assertEqual(code, 6)
+        self.assertIn('nope', text)
+
+
+class VisualStudioTests(unittest.TestCase):
+    def report(self, output, code=0):
+        with tempfile.TemporaryDirectory() as directory:
+            stub = Path(directory) / 'vswhere.exe'
+            stub.write_text('', encoding='utf-8')
+            return build_step.visual_studio_report(stub, runner=lambda command: (code, output))
+
+    def installations(self, *versions):
+        return json.dumps([{'displayName': 'Visual Studio ' + version,
+                            'installationVersion': version,
+                            'installationPath': 'C:/VS/' + version} for version in versions])
+
+    def test_reports_missing_vswhere(self):
+        report = build_step.visual_studio_report(Path('C:/definitely/missing/vswhere.exe'))
+        self.assertEqual(report.versions, [])
+        self.assertEqual(report.selection, (None, None))
+        self.assertIn('未找到', report.notes()[0])
+
+    def test_keeps_2022_installation_usable(self):
+        report = self.report(self.installations('17.14.37710.0'))
+        self.assertEqual(report.selection, ('Visual Studio 17 2022', 17))
+        self.assertIsNone(report.problem)
+        self.assertIn('Visual Studio 17 2022', report.notes()[-1])
+
+    def test_keeps_2019_installation_usable(self):
+        report = self.report(self.installations('16.11.40.0'))
+        self.assertEqual(report.selection, ('Visual Studio 16 2019', 16))
+        self.assertIsNone(report.problem)
+
+    def test_flags_2026_installation_as_problem(self):
+        report = self.report(self.installations('18.5.1.0'))
+        self.assertEqual(report.selection, ('Visual Studio 16 2019', 16))
+        self.assertIn('windows-2022', report.problem)
+
+    def test_uses_highest_installed_version(self):
+        report = self.report(self.installations('17.14.0.0', '18.5.1.0'))
+        self.assertEqual(report.selection, ('Visual Studio 16 2019', 16))
+        self.assertIn('Unable to generate build files', report.problem)
+
+    def test_accepts_newer_installation_alongside_2019(self):
+        report = self.report(self.installations('16.11.40.0', '17.14.0.0'))
+        self.assertEqual(report.selection, ('Visual Studio 17 2022', 17))
+        self.assertIsNone(report.problem)
+
+    def test_reports_unparsable_output(self):
+        report = self.report('nope', code=1)
+        self.assertEqual(report.versions, [])
+        self.assertIn('无法解析', report.notes()[0])
+
+    def test_reports_empty_installation_list(self):
+        report = self.report('[]')
+        self.assertEqual(report.versions, [])
+        self.assertIn('未返回安装实例', report.notes()[0])
+
+    def test_survives_unrunnable_vswhere(self):
+        with tempfile.TemporaryDirectory() as directory:
+            stub = Path(directory) / 'vswhere.exe'
+            stub.write_text('', encoding='utf-8')
+
+            def explode(command):
+                raise OSError('拒绝访问')
+
+            report = build_step.visual_studio_report(stub, runner=explode)
+        self.assertEqual(report.versions, [])
+        self.assertIn('无法执行', report.notes()[0])
 
 
 class NarrowStdoutTests(unittest.TestCase):

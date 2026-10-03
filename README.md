@@ -86,7 +86,7 @@ Flutter 独立短剧应用。本线以桌面端为主维护线（Windows 10+ x64
 
 Linux 任务固定运行在 `ubuntu-26.04` 上：`ubuntu-latest` 目前仍指向 24.04，会在 2026 年 10 月 19 日至 11 月 19 日之间切到 26.04，若不显式钉住基底，出包环境会随迁移漂移。deb 里的原生库按 26.04 的 glibc 与 GTK3 编译，因此只保证在 Ubuntu 26.04 上运行。
 
-`windows` 任务首次运行（2026-10-03）两个版本都停在 `scripts/build_windows.py`，退出码 1；同一脚本在本机跑通并产出便携压缩包，判断为 CI 环境差异。GitHub 的 job 日志需要仓库管理员权限才能下载，匿名只能读 check-run 注解，因此构建脚本改为把失败步骤的输出写进 `::error::` 注解（`scripts/build_step.py`），并把工具链版本写进 `::notice::` 注解，修复进展见下表 P1-R13。
+`windows` 任务固定在 `windows-2022` 上：Flutter 3.32.8 只把 Visual Studio 主版本 17（VS 2022）映射到 CMake 生成器 `Visual Studio 17 2022`，其它版本一律回退成 `Visual Studio 16 2019`；`windows-latest` 现在是 Windows Server 2025 + VS 2026（主版本 18），生成器找不到 VS 2019，构建以 `Unable to generate build files` 结束。`windows-2022` 仍在正常发版、自带 VS 2022，所以显式钉住基底，等 Flutter 支持 VS 2026 再放开。GitHub 的 job 日志需要仓库管理员权限才能下载，匿名只能读 check-run 注解，因此构建脚本把失败步骤的输出写进 `::error::` 注解、把工具链与 Visual Studio 版本写进 `::notice::` 注解（`scripts/build_step.py`），首次运行的失败原因就是靠注解定位的。脚本还会在动手构建前用 `vswhere` 核对安装清单：一旦 Flutter 选中的生成器在本机没有对应的 Visual Studio，就直接写 `::error::` 注解并退出，不再等 CMake 报错。
 
 自行构建 Android 正式签名包时，在仓库 Secrets 配置：
 
@@ -151,7 +151,7 @@ Linux 桌面端调试改为 `python3 scripts/build_native.py --platform linux`�
 | P1-R10 | 两版 | 用户设置与记录检查保存结果，失败回滚快照，无法确认时锁定 | 写入失败、恢复中断、用户隔离、重启一致性 |
 | P1-R11 | 两版 | 红果封面换源：App 接口下发的带签名 HEIC 模板地址改用同一张图的公共图床无签名 JPEG 地址 | 首页 / 分类 / 榜单 / 详情封面全部可解码；旧 HEIC 缓存不再命中，换源失败不影响其他站源 |
 | P1-R12 | 两版 | Linux 桌面端接入：`linux/` 平台工程、FFI 加载 `lib/libduanju_core.so`、deb 打包与 `ubuntu-26.04` CI 任务 | 在 Ubuntu 26.04 上安装 deb、菜单启动、窗口标题、全屏切换、封面与在线播放全部可用 |
-| P1-R13 | 两版 | 修复 Actions `windows` 任务：首次运行两个版本都在 `scripts/build_windows.py` 退出码 1，本机同脚本跑通；构建脚本已把失败输出与工具链版本写入 check-run 注解 | CI 上 `windows` 两个版本都产出便携压缩包并完成 upload-artifact |
+| P1-R13 | 两版 | 修复 Actions `windows` 任务：`windows-latest` 已换成 VS 2026，Flutter 3.32.8 回退到 `Visual Studio 16 2019` 生成器导致 `Unable to generate build files`；改为钉 `windows-2022`，并把失败输出与工具链、Visual Studio 版本写入 check-run 注解 | CI 上 `windows` 两个版本都产出便携压缩包并完成 upload-artifact |
 
 ### 功能完善
 
