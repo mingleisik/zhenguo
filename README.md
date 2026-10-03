@@ -1,9 +1,9 @@
 # 红果鉴 / 真果鉴
 
-Flutter 独立短剧应用，支持 Android 手机和 Android TV。站源请求、解析、下载和播放均在设备上完成，不依赖旧项目、远程自建服务或第三方中转。原生核心为 Go（FFI 接入），播放器基于 media_kit / libmpv。
+Flutter 独立短剧应用。本线以桌面端为主维护线（Windows 10+ x64、Linux x64 / Ubuntu 26.04），Android 手机与 Android TV 源码保留，跟随上游作者节奏，不在本线主动推进。站源请求、解析、下载和播放均在设备上完成，不依赖旧项目、远程自建服务或第三方中转。原生核心为 Go（FFI 接入），播放器基于 media_kit / libmpv。
 修改加入的对安卓6的支持
 
-当前源码版本：**0.2.61+76（未验证开发快照）**。按 2026-09-21 的约定，功能优先、暂停集中测试与回归；未经设备验收的能力均标注"待验证"，不作为已通过验收的版本。
+当前源码版本：**0.2.102+4（未验证开发快照）**。按 2026-09-21 的约定，功能优先、暂停集中测试与回归；未经设备验收的能力均标注"待验证"，不作为已通过验收的版本。
 
 ## 版本与编译选项
 
@@ -25,7 +25,7 @@ Flutter 独立短剧应用，支持 Android 手机和 Android TV。站源请求�
 | 下载与离线 | 分集选画质下载、批量管理、断点续传、Android 后台服务、离线播放、目录迁移 |
 | 用户与权限 | 本地多用户、管理员密码、站源 / 下载权限分配、配置备份与恢复 |
 | 局域网互联 | mDNS 自动发现、HTTPS 直连、追剧与进度增量同步、推送续播（不经过服务器） |
-| 画质增强 | 物理输出尺寸适配、RAVU、动漫 CNN、FSRCNNX 等；原仅 Windows 桌面端开放，Windows 端移除后暂不生效 |
+| 画质增强 | 物理输出尺寸适配、RAVU、动漫 CNN、FSRCNNX 等；Windows 桌面端开放 |
 | Android TV | 自动识别电视、统一横屏、遥控焦点模型与选项对话框；播放控制条 3 秒自动隐藏并带渐隐过渡 |
 | 主题 | 浅色 / 深色 / 跟随系统 |
 
@@ -65,7 +65,9 @@ Flutter 独立短剧应用，支持 Android 手机和 Android TV。站源请求�
 
 | 平台 | 状态 |
 | --- | --- |
-| Android 6.0+ 手机 | 源码 `0.2.61+76`；构建脚本与 Actions 产物可用（CI 仅编 arm64-v8a），真实安装与运行待验收；浏览、搜索、在线播放支持安卓 6（minSdk 23，Flutter 3.32.8）。按 2026-10-02 要求彻底移除 FFmpegKit 及其依赖功能（分集合并、Emby 导出、封面解码），消除启动时原生库加载失败导致的安卓 6 黑屏；离线播放不受影响（走 Go 核心按分集播放） |
+| Windows 10+ x64 | 2026-10-02 恢复维护：`windows/` 平台工程、构建脚本与 Actions 产物已接回，源码 `0.2.102+4`；构建需 MinGW-w64 与 Visual Studio 生成工具，真实运行待验收。便携模式：数据目录为可执行文件同级的 `userdata`（配置、用户、记录、下载与增强资源缓存均在其中），不使用 `%APPDATA%`，整个目录可直接拷贝迁移。已摘取上游 3 个跨平台播放器补丁（起播误判卡顿修复、mpv 日志降级 warn、直接进播放页），未引入上游的 Android 专属改动；并修复切到其他应用后返回不自动续播（仅对"因窗口失焦自动暂停"生效，用户手动暂停不恢复，播放完毕不续播）；并修复首页与分类封面不显示（红果 App 接口下发的带签名 HEIC 模板地址改用公共图床 JPEG 地址，桌面端引擎不含 HEIF 解码器） |
+| Linux x64（Ubuntu 26.04） | 新增：`linux/` 平台工程、`scripts/build_linux.py`、Actions `ubuntu-26.04` 任务与 deb 安装包，源码 `0.2.102+4`；构建需 clang、CMake、Ninja、GTK3 与 libmpv / epoxy 开发包，真实运行待验收。deb 安装到 `/opt/hongguojian`（全站源版为 `/opt/zhenguojian`），桌面项与图标注册到系统目录；数据目录沿用 XDG 规范（`~/.local/share`），不使用便携模式 |
+| Android 6.0+ 手机 | 源码 `0.2.102+4`；构建脚本与 Actions 产物可用（CI 仅编 arm64-v8a），真实安装与运行待验收；浏览、搜索、在线播放支持安卓 6（minSdk 23，Flutter 3.32.8）。按 2026-10-02 要求彻底移除 FFmpegKit 及其依赖功能（分集合并、Emby 导出、封面解码），消除启动时原生库加载失败导致的安卓 6 黑屏；离线播放不受影响（走 Go 核心按分集播放） |
 | macOS 12+ | 按 2026-10-02 要求停止编译；平台源码保留，不提供安装包与 Actions 产物 |
 | Android TV | 与手机共用 Android 源码；遥控与电视布局待实机验收 |
 
@@ -78,8 +80,12 @@ Flutter 独立短剧应用，支持 Android 手机和 Android TV。站源请求�
 | 红果版 Artifact | 全站源版 Artifact | 内容 |
 | --- | --- | --- |
 | `hongguojian-android` | `zhenguojian-android` | arm64-v8a APK 和 SHA256 |
+| `hongguojian-windows` | `zhenguojian-windows` | Windows x64 便携压缩包和 SHA256 |
+| `hongguojian-linux` | `zhenguojian-linux` | Linux amd64 deb 安装包和 SHA256 |
 
-检查任务（checks）不阻断出包；暂停验证期间的测试结果仅供参考。push 到 `main` 构建成功后自动创建 GitHub Release（tag 为 `v<版本>-<构建号>`），可直接在 Releases 页下载 APK。
+检查任务（checks）不阻断出包；暂停验证期间的测试结果仅供参考。push 到 `main` 构建成功后自动创建 GitHub Release（tag 为 `v<版本>-<构建号>`），可直接在 Releases 页下载 APK、Windows 便携包与 deb。
+
+Linux 任务固定运行在 `ubuntu-26.04` 上：`ubuntu-latest` 目前仍指向 24.04，会在 2026 年 10 月 19 日至 11 月 19 日之间切到 26.04，若不显式钉住基底，出包环境会随迁移漂移。deb 里的原生库按 26.04 的 glibc 与 GTK3 编译，因此只保证在 Ubuntu 26.04 上运行。
 
 Android 正式发布签名在仓库 Secrets 配置：
 
@@ -95,13 +101,17 @@ Android 正式发布签名在仓库 Secrets 配置：
 
 ## 开发与构建
 
-Flutter `3.32.8`、Dart `3.8+`、Go `1.24.1+`、Python `3.10+`。Android 需要 JDK 17、SDK 36、NDK `28.2.13676358`。
+Flutter `3.32.8`、Dart `3.8+`、Go `1.24.1+`、Python `3.10+`。Android 需要 JDK 17、SDK 36、NDK `28.2.13676358`；Windows 需要 MinGW-w64（`x86_64-w64-mingw32-gcc`）和 Visual Studio 生成工具；Linux 需要 clang、CMake、Ninja、pkg-config 与 `libgtk-3-dev liblzma-dev libmpv-dev libepoxy-dev`（Ubuntu 26.04 上再加 `build-essential dpkg-dev`）。
 
 构建脚本对子进程默认设置 `GOPROXY=https://goproxy.cn,direct`、`GOSUMDB=off`，不改全局配置；同名环境变量可覆盖。
 
 ~~~sh
 python3 scripts/build_android.py            # 红果版，可加 --abi arm64-v8a --cn-mirrors
 python3 scripts/build_android.py --all-sources
+python3 scripts/build_windows.py            # 需在 Windows 上运行，可加 --cn-mirrors
+python3 scripts/build_windows.py --all-sources
+python3 scripts/build_linux.py              # 需在 Linux 上运行，可加 --cn-mirrors
+python3 scripts/build_linux.py --all-sources
 ~~~
 
 国内构建可使用 `--cn-mirrors` / `-ChinaMirrors`：Flutter/pub 使用 `storage.flutter-io.cn` / `pub.flutter-io.cn`，Android 依赖优先阿里云镜像；仅作用于本次构建，结束后恢复原锁文件与临时 Gradle 配置。
@@ -114,13 +124,17 @@ flutter pub get --enforce-lockfile
 flutter run
 ~~~
 
+Windows 桌面端调试改为 `python3 scripts/build_native.py --platform windows`，CMake 会把 `duanju_core.dll` 拷到可执行文件同目录。Windows 端为便携模式，运行数据写入可执行文件同级的 `userdata`，不使用 `%APPDATA%`。
+
+Linux 桌面端调试改为 `python3 scripts/build_native.py --platform linux`，产物 `libduanju_core.so` 由 CMake 装进 bundle 的 `lib/` 目录，Dart 侧从可执行文件同级的 `lib/libduanju_core.so` 加载。`build_linux.py` 会导出 `DUANJU_EDITION`，CMake 据此生成 GTK 应用标识与窗口标题，因此同一份源码可以直接产出红果鉴与真果鉴两个 deb。
+
 调试全站源版时给 `build_native.py` 加 `--all-sources`，并用 `flutter run --dart-define=ALL_SOURCES=true`；脚本会同步设置 Dart 常量和 Go 编译参数，应用启动时检查二者是否一致。
 
-产物在 `dist/android`，红果版以 `hongguojian-` 开头，全站源版以 `zhenguojian-` 开头，均附 SHA256SUMS。
+产物在 `dist/android`、`dist/windows` 和 `dist/linux`，红果版以 `hongguojian-` / `hongguojian_` 开头，全站源版以 `zhenguojian-` / `zhenguojian_` 开头，均附 SHA256SUMS。Windows 产物为便携压缩包，解压后运行 `duanju_app.exe`；Linux 产物为 deb，安装命令 `sudo apt install ./hongguojian_<版本>_amd64.deb`，装完在应用菜单里以"红果鉴"出现，也可直接运行 `/opt/hongguojian/duanju_app`。
 
 ## 功能 TODO
 
-对照旧短剧库（`../短剧库`、`../果果剧库`）的功能清单。"两版"指默认红果鉴与全站源真果鉴。Android 手机为首要平台，Android TV 其次；Windows 与 iOS 端已按需求移除。
+对照旧短剧库（`../短剧库`、`../果果剧库`）的功能清单。"两版"指默认红果鉴与全站源真果鉴。本线以桌面端为主维护线（Windows x64 优先，Linux amd64 其次），Android 手机与 Android TV 源码保留、跟随上游作者节奏，不在本线主动推进；iOS 端已按需求移除。
 
 ### 优先修复：分页、资料与数据边界（已实现，待集中验证）
 
@@ -134,6 +148,8 @@ flutter run
 | P1-R8 | 两版 | 目录及站源记录写入失败传回页面并标明未保存，提供重试 | 文件冲突、空间 / 权限失败、重启 |
 | P1-R9 | 两版 | 区分首次启动与配置损坏；异常锁定访问，提供导出与管理员验证恢复 | 访客 / 管理员损坏、冷启动、恢复流程 |
 | P1-R10 | 两版 | 用户设置与记录检查保存结果，失败回滚快照，无法确认时锁定 | 写入失败、恢复中断、用户隔离、重启一致性 |
+| P1-R11 | 两版 | 红果封面换源：App 接口下发的带签名 HEIC 模板地址改用同一张图的公共图床无签名 JPEG 地址 | 首页 / 分类 / 榜单 / 详情封面全部可解码；旧 HEIC 缓存不再命中，换源失败不影响其他站源 |
+| P1-R12 | 两版 | Linux 桌面端接入：`linux/` 平台工程、FFI 加载 `lib/libduanju_core.so`、deb 打包与 `ubuntu-26.04` CI 任务 | 在 Ubuntu 26.04 上安装 deb、菜单启动、窗口标题、全屏切换、封面与在线播放全部可用 |
 
 ### 功能完善
 
@@ -149,7 +165,7 @@ flutter run
 | P3-1 | 网络与资源设置 | 已实现待验证：直连 / 自动 / 手动代理、目录并发与间隔，各平台代理与在途切换 |
 | P3-2 | 局域网追剧与续播同步 | 已实现待验证：自动发现、HTTPS 直连、增量合并与手动双向同步；各平台真实双端同步 |
 | P3-3 | 局域网推送播放 | 已实现待验证：复用设备连接推送续播，不传媒体地址、密钥或文件 |
-| P3-4 | 视频画质增强与超分 | 已实现待验证：此前仅 Windows 桌面端开放，Windows 端移除后暂无开放平台，代码保留 |
+| P3-4 | 视频画质增强与超分 | 已实现待验证：Windows 桌面端开放，随 Windows 端恢复维护重新生效 |
 | P3-5 | Android 画中画 | 已实现待验证：系统 PiP 接入；TV 未接入系统级画中画 |
 
 旧项目的 Docker / HTTP 服务、浏览器注册与远程账号、跨设备服务端记录、在线 STRM 签名网关和远程 Emby 定时同步依赖常驻服务器，不作为本 App 的目标功能；对应能力是设备内用户与备份、原生播放器，以及不依赖服务器的局域网直连。

@@ -17,6 +17,7 @@ import 'local_store.dart';
 import 'profiles_screen.dart';
 import 'lan_controller.dart';
 import 'player_screen.dart';
+import 'portable_storage.dart';
 import 'video_enhancement_assets.dart';
 
 Future<void> main(List<String> arguments) async {
@@ -25,9 +26,11 @@ Future<void> main(List<String> arguments) async {
     await SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge);
     SystemChrome.setSystemUIOverlayStyle(AppTheme.systemBars(Brightness.dark));
   }
-  if (Platform.isWindows) {
+  if (Platform.isWindows || Platform.isLinux) {
     await windowManager.ensureInitialized();
+    await windowManager.setTitle(appName);
   }
+  await installPortablePreferences();
   MediaKit.ensureInitialized();
   VideoEnhancementAssets.registerLicenses();
   final device = await AppDevice.detect();
@@ -109,7 +112,7 @@ class _AppBootstrapState extends State<AppBootstrap>
             store!,
             kind: device.television
                 ? 'tv'
-                : Platform.isWindows || Platform.isMacOS
+                : Platform.isWindows || Platform.isMacOS || Platform.isLinux
                 ? 'computer'
                 : 'phone',
           );

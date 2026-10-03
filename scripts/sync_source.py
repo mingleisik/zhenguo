@@ -11,7 +11,7 @@ from pathlib import Path
 
 
 SOURCE_DIRECTORIES = {
-    '.github', 'lib', 'native', 'android', 'macos', 'packages',
+    '.github', 'lib', 'native', 'android', 'windows', 'linux', 'macos', 'packages',
     'assets', 'scripts', 'test', 'test_driver', 'integration_test',
 }
 SOURCE_FILES = {
@@ -48,8 +48,13 @@ REQUIRED_FILES = {
     'AGENTS.md', 'README.md', 'pubspec.yaml', 'pubspec.lock', 'lib/main.dart',
     'native/go.mod', 'native/go.sum', 'native/bridge/main.go',
     'android/app/build.gradle.kts', 'android/gradle/wrapper/gradle-wrapper.properties',
+    'windows/CMakeLists.txt', 'windows/runner/CMakeLists.txt', 'windows/runner/main.cpp',
+    'windows/runner/resources/app_icon.ico',
+    'linux/CMakeLists.txt', 'linux/runner/CMakeLists.txt', 'linux/runner/main.cc',
+    'linux/runner/resources/app_icon.png',
     'macos/Runner.xcodeproj/project.pbxproj', 'macos/Runner/Configs/AppInfo.xcconfig',
-    '.github/workflows/build.yml', 'scripts/build_native.py',
+    '.github/workflows/build.yml', 'scripts/build_native.py', 'scripts/build_windows.py',
+    'scripts/build_linux.py', 'scripts/linux_package.py',
 }
 
 

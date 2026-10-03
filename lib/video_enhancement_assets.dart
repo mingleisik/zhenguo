@@ -5,7 +5,8 @@ import 'package:crypto/crypto.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
 import 'package:path/path.dart' as path;
-import 'package:path_provider/path_provider.dart';
+
+import 'portable_storage.dart';
 
 class VideoEnhancementAssets {
   static const root = 'assets/video_enhancement';
@@ -43,7 +44,7 @@ class VideoEnhancementAssets {
     }
     final directory = Directory(
       path.join(
-        (await getApplicationSupportDirectory()).path,
+        (await applicationDataDirectory()).path,
         'video_enhancement',
         'v1',
       ),

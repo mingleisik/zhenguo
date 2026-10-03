@@ -32,4 +32,7 @@ macos/Flutter/ephemeral/
 macos/Flutter/Generated.xcconfig
 macos/Flutter/GeneratedPluginRegistrant.swift
 macos/Runner/GeneratedPluginRegistrant.*
+windows/runner/duanju_core.dll
+linux/runner/libduanju_core.so
 **/xcuserdata/
+.workbuddy-ai/

@@ -30,6 +30,13 @@ if macos.exists():
             size = round(float(entry['size'].split('x')[0]) * float(entry['scale'].rstrip('x')))
             save(icon.resize((size, size), Image.Resampling.LANCZOS),
                  'macos/Runner/Assets.xcassets/AppIcon.appiconset/' + entry['filename'])
+windows_icon = output / 'windows/runner/resources/app_icon.ico'
+if windows_icon.parent.exists():
+    icon.save(windows_icon, format='ICO',
+              sizes=[(16, 16), (24, 24), (32, 32), (48, 48), (64, 64), (128, 128), (256, 256)])
+if (output / 'linux/runner').exists():
+    save(icon.resize((256, 256), Image.Resampling.LANCZOS),
+         'linux/runner/resources/app_icon.png')
 font = ImageFont.truetype(str(options.font), 76)
 for name, resource in [('红果鉴', 'tv_banner'), ('真果鉴', 'tv_banner_all_sources')]:
     banner = Image.new('RGB', (640, 360), '#101114')

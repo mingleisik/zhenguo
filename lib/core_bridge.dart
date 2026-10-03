@@ -6,7 +6,6 @@ import 'dart:isolate';
 
 import 'package:ffi/ffi.dart';
 import 'package:path/path.dart' as path;
-import 'package:path_provider/path_provider.dart';
 
 import 'models.dart';
 import 'danmaku_models.dart';
@@ -18,6 +17,7 @@ import 'ranking_models.dart';
 import 'catalog_updates.dart';
 import 'download_collections.dart';
 import 'resource_settings.dart';
+import 'portable_storage.dart';
 
 typedef _NativeRequest = Pointer<Utf8> Function(Pointer<Utf8>);
 typedef _DartRequest = Pointer<Utf8> Function(Pointer<Utf8>);
@@ -31,6 +31,14 @@ String _nativeRequest(String body) {
   } else if (Platform.isWindows) {
     library = DynamicLibrary.open(
       path.join(path.dirname(Platform.resolvedExecutable), 'duanju_core.dll'),
+    );
+  } else if (Platform.isLinux) {
+    library = DynamicLibrary.open(
+      path.join(
+        path.dirname(Platform.resolvedExecutable),
+        'lib',
+        'libduanju_core.so',
+      ),
     );
   } else if (Platform.isIOS) {
     library = DynamicLibrary.process();
@@ -46,7 +54,7 @@ String _nativeRequest(String body) {
       ),
     );
   } else {
-    throw UnsupportedError('当前支持 Android、Windows、macOS 和 iOS');
+    throw UnsupportedError('当前支持 Android、Windows、Linux、macOS 和 iOS');
   }
   final request = library.lookupFunction<_NativeRequest, _DartRequest>(
     'DuanjuRequest',
@@ -639,7 +647,7 @@ class NativeRepository extends AppRepository {
 
   @override
   Future<void> initialize() async {
-    final directory = await getApplicationSupportDirectory();
+    final directory = await applicationDataDirectory();
     final build = await _call({
       'action': 'initialize',
       'directory': directory.path,

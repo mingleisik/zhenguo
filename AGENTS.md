@@ -2,15 +2,23 @@
 
 ## 项目目标
 
-构建 Flutter 多端独立应用。站源请求、解析、在线播放及后续下载、合并均在设备端完成；成品不依赖旧短剧库程序、旧项目路径或远程自建服务。可以迁移已经验证的业务逻辑，并将依赖一并纳入本项目。
+构建 Flutter 独立应用。本线以桌面端为主维护线：Windows 10+ x64 与 Linux x64（Ubuntu 26.04）。站源请求、解析、在线播放及后续下载均在设备端完成；成品不依赖旧短剧库程序、旧项目路径或远程自建服务。可以迁移已经验证的业务逻辑，并将依赖一并纳入本项目。Android 手机与 Android TV 源码保留，跟随上游作者节奏，不在本线主动推进。
 
 ## 优先级与交付
 
-1. Android 手机为第一优先级（含安卓 6 兼容：minSdk 23；FFmpegKit 及合并、导出、封面解码功能已按 2026-10-02 要求彻底移除，离线播放走 Go 核心不受影响）。
-2. Android TV 第二优先级，适配遥控焦点与电视布局。
-3. Windows 与 iOS 端已按用户 2026-10-02 的要求移除，不再维护其平台工程与构建产物；macOS 端同日起停止编译，平台源码保留但不参与 CI 构建与发布产物。
+1. Windows 10+ x64 桌面端为第一优先级：`windows/` 平台工程、`scripts/build_windows.py`、CI `windows` 任务与 `dist/windows` 便携包。构建需 Windows、MinGW-w64（`x86_64-w64-mingw32-gcc`）和 Visual Studio 生成工具。
+2. Linux x64（Ubuntu 26.04）桌面端第二优先级：`linux/` 平台工程、`scripts/build_linux.py`、CI `linux` 任务与 `dist/linux` deb 安装包。CI 必须显式固定 `ubuntu-26.04`，不要用 `ubuntu-latest`（它目前仍是 24.04，会在 2026 年 10 月 19 日至 11 月 19 日之间切到 26.04）。构建需 clang、CMake、Ninja、`libgtk-3-dev`、`liblzma-dev`、`libmpv-dev`、`libepoxy-dev`、`build-essential` 和 `dpkg-dev`；deb 里的原生库按 26.04 的 glibc 与 GTK3 编译，只保证在 26.04 上运行。
+3. Android 手机与 Android TV 源码保留、跟随上游节奏，不在本线主动推进（含安卓 6 兼容：minSdk 23；FFmpegKit 及合并、导出、封面解码功能已按 2026-10-02 要求彻底移除，离线播放走 Go 核心不受影响）。iOS 端仍不维护；macOS 端停止编译，平台源码保留但不参与 CI 构建与发布产物。
 4. 首版优先完成可用的在线播放闭环：浏览、搜索、剧集详情、选集、播放、错误重试。
 5. 其他功能按 README.md 中的待办顺序逐项实现，完成后更新状态。不要为了未到优先级的功能推迟首版。
+
+## 桌面端平台约定
+
+- 红果鉴与真果鉴共用同一份平台源码：`--all-sources` 切换版本，`build_linux.py` 额外导出 `DUANJU_EDITION`，由 `linux/CMakeLists.txt` 生成 GTK 应用标识与窗口标题，同一份源码可直接产出两个 deb。
+- Go 核心产物位置固定：`windows/runner/duanju_core.dll` 与 `linux/runner/libduanju_core.so`，均由平台 CMake 装到可执行文件同级的库目录，Dart 侧按可执行文件位置加载。
+- Linux 打包只用系统 `dpkg-deb` / `dpkg-shlibdeps`；`libmpv` 由 `media_kit_video` 在构建期链接，`Depends` 里必须保留 libmpv，缺失时由 `scripts/linux_package.py` 手工补上。
+- `media_kit_libs_linux` 会在 CMake 配置阶段从 github.com 下载并编译 mimalloc，构建机必须能直连 github.com；国内网络需要代理。
+- 本机没有 Linux 工具链，也不允许调用 WSL，Linux 产物只能由 GitHub Actions 的 `ubuntu-26.04` 任务产出；本地只能验证 Go 交叉编译、Dart 静态检查与打包脚本单测。
 
 ## 实施与验证
 

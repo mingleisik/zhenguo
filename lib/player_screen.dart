@@ -113,6 +113,7 @@ class _PlayerScreenState extends State<PlayerScreen>
   bool _acceptErrors = false;
   bool _foreground = true;
   bool _playIntent = true;
+  bool _pausedByLifecycle = false;
   bool _showControlsOnPlaybackReady = true;
   bool _pendingError = false;
   bool _pictureInPictureSupported = false;
@@ -188,7 +189,7 @@ class _PlayerScreenState extends State<PlayerScreen>
         Player(
           configuration: const PlayerConfiguration(
             bufferSize: 32 * 1024 * 1024,
-            logLevel: MPVLogLevel.v,
+            logLevel: MPVLogLevel.warn,
           ),
         );
     _video = widget.videoBuilder == null
@@ -196,6 +197,7 @@ class _PlayerScreenState extends State<PlayerScreen>
             _player,
             configuration: VideoControllerConfiguration(
               enableHardwareAcceleration: !Platform.isIOS,
+              androidAttachSurfaceAfterVideoParameters: Platform.isAndroid,
             ),
           )
         : null;
@@ -458,9 +460,20 @@ class _PlayerScreenState extends State<PlayerScreen>
         (_lifecycleState == AppLifecycleState.paused ||
             _lifecycleState == AppLifecycleState.inactive ||
             _lifecycleState == AppLifecycleState.hidden)) {
+      if (_playIntent) _pausedByLifecycle = true;
       _playIntent = false;
       unawaited(_player.pause());
       unawaited(_saveProgress(flush: true));
+    }
+    if (visible && _pausedByLifecycle) {
+      _pausedByLifecycle = false;
+      _playIntent = true;
+      if (!_loading && _error == null && !_player.state.completed) {
+        _enhancement.mediaReady();
+        unawaited(_player.play());
+      }
+      _syncDanmaku();
+      _syncPreload();
     }
     if (visible && _pendingError) {
       _queueRecovery();
@@ -677,8 +690,7 @@ class _PlayerScreenState extends State<PlayerScreen>
     final duration = state.duration.inMilliseconds;
     final position = state.position.inMilliseconds;
     if (duration <= 0 ||
-        position < 2000 ||
-        (position < duration ~/ 2 && duration - position > 45000) ||
+        position < 5000 ||
         state.buffer.inMilliseconds - position < 5000) {
       return;
     }
@@ -831,6 +843,7 @@ class _PlayerScreenState extends State<PlayerScreen>
     _handoffOwned = false;
     widget.handoff?.fail('接收端已操作播放');
     _interactions.cancel();
+    _pausedByLifecycle = false;
     _playIntent = !_player.state.playing;
     if (_playIntent) _enhancement.mediaReady();
     _health.reset();
@@ -1124,7 +1137,7 @@ class _PlayerScreenState extends State<PlayerScreen>
       _automaticFullscreenSuppressed = !fullscreen;
     });
     try {
-      if (Platform.isWindows) {
+      if (Platform.isWindows || Platform.isLinux) {
         await windowManager.setFullScreen(fullscreen);
       } else if (_mobile) {
         await (_orientationController?.setPlayback(
@@ -1459,7 +1472,7 @@ class _PlayerScreenState extends State<PlayerScreen>
         await _player.dispose();
       }),
     );
-    if (Platform.isWindows) {
+    if (Platform.isWindows || Platform.isLinux) {
       unawaited(windowManager.setFullScreen(false));
     } else if (_mobile || _television && Platform.isAndroid) {
       unawaited(
