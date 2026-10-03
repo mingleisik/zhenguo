@@ -1,11 +1,15 @@
 import contextlib
 import io
 import os
+import subprocess
 import sys
 import unittest
+from pathlib import Path
 from unittest import mock
 
 import build_step
+
+SCRIPTS = Path(__file__).resolve().parent
 
 
 class EscapeTests(unittest.TestCase):
@@ -29,6 +33,13 @@ class RunTests(unittest.TestCase):
         with contextlib.redirect_stdout(io.StringIO()):
             self.assertEqual(build_step.run([sys.executable, '-c', 'print("ok")']), 0)
 
+    def test_streams_non_ascii_child_output(self):
+        code = 'import sys; sys.stdout.buffer.write("\\u221a \\u4e2d\\u6587\\n".encode("utf-8"))'
+        buffer = io.StringIO()
+        with contextlib.redirect_stdout(buffer):
+            self.assertEqual(build_step.run([sys.executable, '-c', code]), 0)
+        self.assertIn('中文', buffer.getvalue())
+
     def test_annotates_failure_with_output(self):
         buffer = io.StringIO()
         with mock.patch.dict(os.environ, {'GITHUB_ACTIONS': 'true'}), \
@@ -42,6 +53,14 @@ class RunTests(unittest.TestCase):
         self.assertIn('boom-line', printed)
         self.assertIn('演示步骤', str(raised.exception))
 
+    def test_annotates_exit_code_when_output_is_empty(self):
+        buffer = io.StringIO()
+        with mock.patch.dict(os.environ, {'GITHUB_ACTIONS': 'true'}), \
+                contextlib.redirect_stdout(buffer):
+            with self.assertRaises(SystemExit):
+                build_step.run([sys.executable, '-c', 'raise SystemExit(5)'], label='demo')
+        self.assertIn('exit=5', buffer.getvalue())
+
     def test_skips_annotation_outside_actions(self):
         buffer = io.StringIO()
         with mock.patch.dict(os.environ, {'GITHUB_ACTIONS': 'false'}), \
@@ -53,7 +72,8 @@ class RunTests(unittest.TestCase):
 
 class OutputTests(unittest.TestCase):
     def test_returns_stdout(self):
-        self.assertEqual(build_step.output([sys.executable, '-c', 'print("值")']).strip(), '值')
+        code = 'import sys; sys.stdout.buffer.write("\\u503c\\n".encode("utf-8"))'
+        self.assertEqual(build_step.output([sys.executable, '-c', code]).strip(), '值')
 
     def test_annotates_failure(self):
         buffer = io.StringIO()
@@ -72,6 +92,26 @@ class ProbeTests(unittest.TestCase):
         with contextlib.redirect_stdout(buffer):
             build_step.probe([('不存在', ['duanju-missing-command-xyz'])])
         self.assertIn('未找到', buffer.getvalue())
+
+    def test_never_raises_for_broken_entries(self):
+        buffer = io.StringIO()
+        with contextlib.redirect_stdout(buffer):
+            build_step.probe([('坏条目', [])])
+        self.assertIn('probe 失败', buffer.getvalue())
+
+
+class NarrowStdoutTests(unittest.TestCase):
+    def test_annotation_survives_narrow_stdout(self):
+        environment = os.environ.copy()
+        environment['GITHUB_ACTIONS'] = 'true'
+        environment['PYTHONIOENCODING'] = 'cp1252'
+        result = subprocess.run(
+            [sys.executable, '-c',
+             'import build_step; build_step.notice("build-env", "\\u221a \\u4e2d\\u6587")'],
+            cwd=SCRIPTS, env=environment, capture_output=True, text=True,
+            encoding='utf-8', errors='replace')
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertIn('::notice title=', result.stdout)
 
 
 if __name__ == '__main__':

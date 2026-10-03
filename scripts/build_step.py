@@ -1,7 +1,9 @@
 """构建子进程的统一入口：实时回显输出，失败时把上下文写进 GitHub 注解。
 
 CI 的 job 日志需要仓库管理员权限才能下载，check-run 注解可以匿名读取，所以构建
-失败时把关键输出附在 ::error:: 注解上，排查不用再靠猜。
+失败时把关键输出附在 ::error:: 注解上，排查不用再靠猜。Windows runner 的 stdout
+不是 UTF-8，注解里出现中文或子进程输出非 ASCII 字符都会抛 UnicodeEncodeError，
+因此本模块在导入时把标准输出切到 UTF-8 并放宽错误处理，注解失败也绝不打断构建。
 """
 
 import os
@@ -12,6 +14,22 @@ import sys
 MESSAGE_LIMIT = 6000
 HEAD_LINES = 15
 TAIL_LINES = 80
+
+
+def _configure_output():
+    if os.environ.get('GITHUB_ACTIONS') != 'true':
+        return
+    for stream in (sys.stdout, sys.stderr):
+        configure = getattr(stream, 'reconfigure', None)
+        if configure is None:
+            continue
+        try:
+            configure(encoding='utf-8', errors='replace')
+        except (OSError, ValueError):
+            pass
+
+
+_configure_output()
 
 
 def _escape(text):
@@ -36,7 +54,10 @@ def annotate(level, title, body):
     text = _excerpt(body)
     if not text:
         return
-    print('::' + level + ' title=' + _escape(title) + '::' + _escape(text), flush=True)
+    try:
+        print('::' + level + ' title=' + _escape(title) + '::' + _escape(text), flush=True)
+    except (OSError, ValueError):
+        pass
 
 
 def notice(title, body):
@@ -53,12 +74,16 @@ def run(command, *, cwd=None, env=None, label=None):
     output = []
     with process.stdout:
         for line in process.stdout:
-            sys.stdout.write(line)
-            sys.stdout.flush()
+            try:
+                sys.stdout.write(line)
+                sys.stdout.flush()
+            except (OSError, ValueError):
+                pass
             output.append(line)
     code = process.wait()
     if code:
-        annotate('error', '构建步骤失败：' + title, ''.join(output))
+        annotate('error', 'build failed: ' + title,
+                 'exit=' + str(code) + '\n' + ''.join(output))
         raise SystemExit('构建步骤失败（退出码 ' + str(code) + '）：' + title)
     return code
 
@@ -69,7 +94,8 @@ def output(command, *, cwd=None, env=None, label=None):
     result = subprocess.run(arguments, cwd=cwd, env=env, capture_output=True, text=True,
                             encoding='utf-8', errors='replace')
     if result.returncode:
-        annotate('error', '构建步骤失败：' + title,
+        annotate('error', 'build failed: ' + title,
+                 'exit=' + str(result.returncode) + '\n' +
                  (result.stdout or '') + (result.stderr or ''))
         raise SystemExit('构建步骤失败（退出码 ' + str(result.returncode) + '）：' + title)
     return result.stdout
@@ -77,25 +103,27 @@ def output(command, *, cwd=None, env=None, label=None):
 
 def probe(commands):
     lines = []
-    for label, command in commands:
-        arguments = [str(item) for item in command]
-        executable = shutil.which(arguments[0])
-        if not executable:
-            lines.append(label + '：未找到 ' + arguments[0])
-            continue
-        try:
-            result = subprocess.run(arguments, capture_output=True, text=True,
-                                    encoding='utf-8', errors='replace')
-        except OSError as error:
-            lines.append(label + '：' + str(error))
-            continue
-        text = (result.stdout or result.stderr or '').strip().splitlines()
-        lines.append(label + '：' + (text[0] if text else executable))
-    for name in ('PATH',):
-        entries = [entry for entry in os.environ.get(name, '').split(os.pathsep)
+    try:
+        for label, command in commands:
+            arguments = [str(item) for item in command]
+            executable = shutil.which(arguments[0])
+            if not executable:
+                lines.append(label + '：未找到 ' + arguments[0])
+                continue
+            try:
+                result = subprocess.run(arguments, capture_output=True, text=True,
+                                        encoding='utf-8', errors='replace')
+            except OSError as error:
+                lines.append(label + '：' + str(error))
+                continue
+            text = (result.stdout or result.stderr or '').strip().splitlines()
+            lines.append(label + '：' + (text[0] if text else executable))
+        entries = [entry for entry in os.environ.get('PATH', '').split(os.pathsep)
                    if 'mingw' in entry.lower() or 'msys' in entry.lower()]
         if entries:
-            lines.append(name + ' 命中：' + ' | '.join(entries))
+            lines.append('PATH 命中：' + ' | '.join(entries))
+    except Exception as error:
+        lines.append('probe 失败：' + repr(error))
     body = '\n'.join(lines)
     print(body, flush=True)
-    notice('构建环境', body)
+    notice('build-env', body)

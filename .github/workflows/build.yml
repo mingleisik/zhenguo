@@ -17,6 +17,9 @@ concurrency:
 env:
   GOPROXY: https://proxy.golang.org,direct
   GOSUMDB: sum.golang.org
+  # Windows runner 的 stdout 不是 UTF-8，构建脚本的注解和子进程输出含中文时会抛
+  # UnicodeEncodeError 并让整个步骤以退出码 1 结束，所以统一固定 Python 的输出编码。
+  PYTHONIOENCODING: utf-8
 
 jobs:
   # 检查不阻断出包；测试按 2026-09-21 约定暂停，结果仅供参考。
